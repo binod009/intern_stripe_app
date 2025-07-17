@@ -2,6 +2,7 @@ import { Express, NextFunction, Request, Response } from "express";
 
 import asyncHandler from "../utils/asyncHandler";
 import stripe from "../config/stripe";
+import ApiError from "../utils/ApiError";
 
 const stripePaymentController = asyncHandler(
   async (req: Request, res: Response) => {
@@ -42,7 +43,6 @@ const createStripeProductController = asyncHandler(
   }
 );
 
-
 const createStripeSubscription = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const { email, payment_method_id, price_id } = req.body;
@@ -68,4 +68,26 @@ const createStripeSubscription = asyncHandler(
   }
 );
 
-export { stripePaymentController, createStripeProductController,createStripeSubscription };
+const createCheckoutController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { items,mode } = req.body;
+    if (items.length === 0) {
+      throw new ApiError("price & quantity missing", 404);
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      success_url: "http://localhost:3005/home",
+      cancel_url: "http://localhost:3005/payment-cancel",
+      line_items: [...items],
+      mode: mode,
+    });
+    res.status(200).json(session);
+  }
+);
+
+export {
+  stripePaymentController,
+  createStripeProductController,
+  createStripeSubscription,
+  createCheckoutController,
+};
