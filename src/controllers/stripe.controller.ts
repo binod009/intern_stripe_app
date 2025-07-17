@@ -102,6 +102,7 @@ export const createStripeCustomer = asyncHandler(
       phone,
       userId: customer.id,
     });
+
     console.log("stripcustomer", customer);
     res.status(201).json({
       message: "Customer created",
@@ -148,6 +149,24 @@ const updateStripeCustomer = asyncHandler(
     });
   }
 );
+
+const DeleteCustomerController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { customerId } = req.params;
+    await stripe.customers.del(customerId);
+    await StripeUser.update(
+      { is_archived: true },
+      {
+        where: {
+          userId: customerId,
+        },
+      }
+    );
+    res.status(200).json({
+      message: "delete successfully",
+    });
+  }
+);
 export {
   stripePaymentController,
   createStripeProductController,
@@ -155,4 +174,5 @@ export {
   createCheckoutController,
   getStripCustomerDetails,
   updateStripeCustomer,
+  DeleteCustomerController,
 };

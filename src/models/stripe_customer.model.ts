@@ -15,6 +15,7 @@ const stripeUserModel = (sequelize: Sequelize) => {
     public email!: string;
     public userId!: string;
     public phone!: string;
+    public is_archived?: boolean;
     public createdAt?: Date | undefined;
     public updatedAt?: Date | undefined;
   }
@@ -39,6 +40,11 @@ const stripeUserModel = (sequelize: Sequelize) => {
         allowNull: false,
       },
       userId: { type: DataTypes.STRING, allowNull: false },
+      is_archived: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+      },
       createdAt: {
         type: DataTypes.DATE,
         allowNull: false,

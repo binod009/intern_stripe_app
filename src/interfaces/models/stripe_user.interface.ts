@@ -6,6 +6,8 @@ export interface StripeUserAttributes {
   createdAt?: Date;
   updatedAt?: Date;
   userId: string;
+  is_archived?: boolean;
 }
 
-export interface StripeUserCreationAttributes extends Omit<StripeUserAttributes, 'id' | "createdAt" | "updatedAt"> { }
+export interface StripeUserCreationAttributes
+  extends Omit<StripeUserAttributes, "id" | "createdAt" | "updatedAt"> {}
