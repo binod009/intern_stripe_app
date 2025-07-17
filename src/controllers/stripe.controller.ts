@@ -6,6 +6,7 @@ import ApiError from "../utils/ApiError";
 import { StripeUser } from "../models";
 import sequelize from "sequelize";
 import stripeUserModel from "../models/stripe_customer.model";
+import { stat } from "fs";
 
 const stripePaymentController = asyncHandler(
   async (req: Request, res: Response) => {
@@ -123,10 +124,35 @@ const getStripCustomerDetails = asyncHandler(
   }
 );
 
+const updateStripeCustomer = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { customerId } = req.params;
+    const { customerData } = req.body;
+
+    const update_data = await stripe.customers.update(customerId, {
+      ...customerData,
+    });
+
+    await StripeUser.update(
+      { ...customerData },
+      {
+        where: {
+          userId: customerId,
+        },
+      }
+    );
+
+    res.status(200).json({
+      statusCode: 200,
+      message: "update successfully",
+    });
+  }
+);
 export {
   stripePaymentController,
   createStripeProductController,
   createStripeSubscription,
   createCheckoutController,
   getStripCustomerDetails,
+  updateStripeCustomer,
 };
