@@ -1,5 +1,5 @@
 import sequelize from "sequelize";
-import { Model, DataTypes,Sequelize } from "sequelize";
+import { Model, DataTypes, Sequelize } from "sequelize";
 import {
   StripeUserAttributes,
   StripeUserCreationAttributes,
@@ -54,8 +54,8 @@ const stripeUserModel = (sequelize: Sequelize) => {
     },
     {
       sequelize,
-      modelName: "stripeuser",
-      tableName: "stripeuser",
+      modelName: "stripeusers",
+      tableName: "stripeusers",
       createdAt: "createdAt",
       updatedAt: "updatedAt",
       timestamps: true,
@@ -74,4 +74,4 @@ const stripeUserModel = (sequelize: Sequelize) => {
   return StripeUser;
 };
 
-export default stripeUserModel
+export default stripeUserModel;

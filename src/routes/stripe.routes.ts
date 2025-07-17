@@ -1,13 +1,16 @@
 import { Router } from "express";
 import {
   createCheckoutController,
+  createStripeCustomer,
   createStripeProductController,
   createStripeSubscription,
+  getStripCustomerDetails,
   stripePaymentController,
 } from "../controllers/stripe.controller";
 
 const stripe_route = Router();
-
+stripe_route.post("/create-user", createStripeCustomer);
+stripe_route.get("/user/details", getStripCustomerDetails);
 stripe_route.post("/create-payment", stripePaymentController);
 stripe_route.post("/create/product", createStripeProductController);
 stripe_route.post("/create/subscription", createStripeSubscription);

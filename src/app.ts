@@ -14,6 +14,7 @@ app.use("/me", (req: Request, res: Response, next: NextFunction) => {
 });
 app.use(router);
 
+// syncing database
 (async () => {
   try {
     await sequelize.sync({ alter: true });
