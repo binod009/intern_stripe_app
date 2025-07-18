@@ -1,7 +1,23 @@
 import sequelize from "../config/database";
+import stripe from "../config/stripe";
 import stripeUserModel from "./stripe_customer.model";
+import stripePaymentModel from "./stripe_payment.model";
 
 // initialize models here
 const StripeUser = stripeUserModel(sequelize);
+const StripePayment = stripePaymentModel(sequelize);
 
-export { sequelize, StripeUser };
+// defined associations
+StripeUser.hasMany(StripePayment, {
+  foreignKey: "userId",
+  sourceKey: "userId",
+  as: "payments",
+});
+
+StripePayment.belongsTo(StripeUser, {
+  foreignKey: "userId",
+  targetKey: "userId",
+  as: "user",
+});
+
+export { sequelize, StripeUser, StripePayment };

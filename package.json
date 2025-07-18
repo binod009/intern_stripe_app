@@ -12,16 +12,22 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@types/body-parser": "^1.19.6",
+    "bcryptjs": "^3.0.2",
+    "body-parser": "^2.2.0",
     "dotenv": "^17.2.0",
     "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
     "pg": "^8.16.3",
     "pg-hstore": "^2.3.4",
     "sequelize": "^6.37.7",
     "stripe": "^18.3.0"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/dotenv": "^6.1.1",
     "@types/express": "^5.0.3",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.0.14",
     "@types/sequelize": "^4.28.20",
     "@types/stripe": "^8.0.416",

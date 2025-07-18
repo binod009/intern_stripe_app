@@ -39,7 +39,7 @@ const stripeUserModel = (sequelize: Sequelize) => {
         type: DataTypes.STRING,
         allowNull: false,
       },
-      userId: { type: DataTypes.STRING, allowNull: false },
+      userId: { type: DataTypes.STRING, allowNull: false, unique: true },
       is_archived: {
         type: DataTypes.BOOLEAN,
         allowNull: false,

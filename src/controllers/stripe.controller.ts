@@ -1,12 +1,11 @@
 import { Express, NextFunction, Request, Response } from "express";
-
+import jwt from "jsonwebtoken";
 import asyncHandler from "../utils/asyncHandler";
 import stripe from "../config/stripe";
 import ApiError from "../utils/ApiError";
-import { StripeUser } from "../models";
-import sequelize from "sequelize";
-import stripeUserModel from "../models/stripe_customer.model";
-import { stat } from "fs";
+import { StripePayment, StripeUser } from "../models";
+
+import Stripe from "stripe";
 
 const stripePaymentController = asyncHandler(
   async (req: Request, res: Response) => {
@@ -19,7 +18,6 @@ const stripePaymentController = asyncHandler(
         allow_redirects: "never",
       },
     });
-
     res.send({ clientSecret: paymentIntent.client_secret });
   }
 );
@@ -89,10 +87,10 @@ const createCheckoutController = asyncHandler(
   }
 );
 
-export const createStripeCustomer = asyncHandler(
+const createStripeCustomer = asyncHandler(
   async (req: Request, res: Response) => {
-    const { name, email, phone, userId } = req.body;
-
+    const { name, email, phone } = req.body;
+    console.log("AM HERE INSIDE THE CREATE STRIPE CUSTOMER");
     // 1. Create customer in Stripe
     const customer = await stripe.customers.create({ name, email, phone });
     // 2. Save to DB
@@ -103,10 +101,19 @@ export const createStripeCustomer = asyncHandler(
       userId: customer.id,
     });
 
-    console.log("stripcustomer", customer);
+    const tokenPayload = {
+      userId: newUser.id, // your internal DB user id
+      stripeCustomerId: customer.id, // optional, useful to include
+    };
+    console.log("this is jwt secret", process.env.JWT_SECRET);
+    const token = jwt.sign(tokenPayload, process.env.JWT_SECRET!, {
+      expiresIn: "1h",
+    });
+
     res.status(201).json({
       message: "Customer created",
       newUser,
+      accessToken: token,
     });
   }
 );
@@ -167,12 +174,82 @@ const DeleteCustomerController = asyncHandler(
     });
   }
 );
+
+const handleStripeWebhook = asyncHandler(
+  async (req: Request, res: Response) => {
+    const sig = req.headers["stripe-signature"]!;
+    let event: Stripe.Event;
+    event = stripe.webhooks.constructEvent(
+      req.body,
+      sig,
+      process.env.STRIPE_WEBHOOK_SECRET!
+    );
+    let response;
+    switch (event.type) {
+      case "payment_intent.succeeded":
+        const paymentIntent = event.data.object as Stripe.PaymentIntent;
+
+        const latestChargeId = paymentIntent.latest_charge as string;
+
+        const charges = await retrieveCharges(latestChargeId);
+
+        response = await savePayment(paymentIntent, charges);
+
+        break;
+      case "checkout.session.completed":
+        const session = event.data.object as Stripe.Checkout.Session;
+        // save order/payment to DB
+        break;
+      default:
+        console.warn(`unhandled event type ${event.type}`);
+    }
+    res.status(200).json({ received: true });
+  }
+);
+
+const retrieveCharges = async (chargerId: string) => {
+  try {
+    return await stripe.charges.retrieve(chargerId);
+  } catch (error) {
+    console.log("charge retrival error", error);
+    throw error;
+  }
+};
+
+const savePayment = async (
+  paymentIntent: Stripe.PaymentIntent,
+  charge: Stripe.Charge
+) => {
+  console.log("this is paymentINETENT=-=-=->", paymentIntent);
+  try {
+    const paymentData = {
+      stripePaymentIntentId: paymentIntent.id,
+      amount: paymentIntent.amount,
+      currency: paymentIntent.currency,
+      status: paymentIntent.status,
+      customerId: (paymentIntent.customer as string) || "",
+      userId: paymentIntent.metadata.userId || "",
+      paymentMethod: charge.payment_method_details?.type || "",
+      receiptUrl: charge.receipt_url || "",
+      description: paymentIntent.description || "",
+    };
+    console.log("payment DATA-=-=-=>", paymentData);
+    const result = await StripePayment.create(paymentData);
+    return result;
+  } catch (error) {
+    console.log("❌ Error saving payment to DB", error);
+    throw error;
+  }
+};
+
 export {
   stripePaymentController,
   createStripeProductController,
   createStripeSubscription,
+  createStripeCustomer,
   createCheckoutController,
   getStripCustomerDetails,
   updateStripeCustomer,
   DeleteCustomerController,
+  handleStripeWebhook,
 };

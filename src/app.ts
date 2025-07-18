@@ -3,15 +3,23 @@ import express, { NextFunction, Request, Response } from "express";
 import router from "./routes/index";
 import GlobalErrorHandler from "./controllers/error.controller";
 import sequelize from "./config/database";
+import bodyParser from "body-parser";
+import { handleStripeWebhook } from "./controllers/stripe.controller";
 
 const app = express();
-app.use(express.json());
 
+app.use(
+  "/webhook",
+  bodyParser.raw({ type: "application/json" }),
+  handleStripeWebhook
+);
+app.use(express.json());
 app.use("/me", (req: Request, res: Response, next: NextFunction) => {
   res.status(200).json({
     msg: "success",
   });
 });
+
 app.use(router);
 
 // syncing database
