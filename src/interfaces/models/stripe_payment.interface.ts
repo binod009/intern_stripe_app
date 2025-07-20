@@ -4,7 +4,7 @@ export interface stripePaymentAttribute {
   amount: number;
   currency: string;
   status: string;
-  userId: string;
+  userId: number;
   customerId: string;
   paymentMethod: string;
   receiptUrl: string;

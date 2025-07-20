@@ -9,15 +9,15 @@ const StripePayment = stripePaymentModel(sequelize);
 
 // defined associations
 StripeUser.hasMany(StripePayment, {
-  foreignKey: "userId",
-  sourceKey: "userId",
+  foreignKey: "id",
+  sourceKey: "id",
   as: "payments",
 });
 
 StripePayment.belongsTo(StripeUser, {
-  foreignKey: "userId",
-  targetKey: "userId",
-  as: "user",
+  foreignKey: "id",
+  targetKey: "id",
+  as: "userDetails",
 });
 
 export { sequelize, StripeUser, StripePayment };

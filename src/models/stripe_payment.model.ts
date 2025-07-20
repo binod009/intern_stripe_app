@@ -19,7 +19,7 @@ const stripePaymentModel = (sequelize: Sequelize) => {
     public currency!: string;
     public status!: string;
     public amount!: number;
-    public userId!: string;
+    public userId!: number;
     public customerId!: string;
     public paymentMethod!: string;
     public receiptUrl!: string;
@@ -47,11 +47,11 @@ const stripePaymentModel = (sequelize: Sequelize) => {
         allowNull: false,
       },
       userId: {
-        type: DataTypes.STRING,
+        type: DataTypes.INTEGER,
         allowNull: false,
         references: {
           model: "stripeusers",
-          key: "userId",
+          key: "id",
         },
       },
       customerId: {

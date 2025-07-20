@@ -9,10 +9,17 @@ import Stripe from "stripe";
 
 const stripePaymentController = asyncHandler(
   async (req: Request, res: Response) => {
+    const { userId, stripeCustomerId } = req.user!;
+    console.log("userId", userId);
+    console.log("stripCustomerId", stripeCustomerId);
     const { amount, currency } = req.body;
     const paymentIntent = await stripe.paymentIntents.create({
       amount,
       currency,
+      metadata: {
+        userId: userId,
+        customerId: stripeCustomerId,
+      },
       automatic_payment_methods: {
         enabled: true,
         allow_redirects: "never",
@@ -105,7 +112,7 @@ const createStripeCustomer = asyncHandler(
       userId: newUser.id, // your internal DB user id
       stripeCustomerId: customer.id, // optional, useful to include
     };
-    console.log("this is jwt secret", process.env.JWT_SECRET);
+
     const token = jwt.sign(tokenPayload, process.env.JWT_SECRET!, {
       expiresIn: "1h",
     });
@@ -220,20 +227,19 @@ const savePayment = async (
   paymentIntent: Stripe.PaymentIntent,
   charge: Stripe.Charge
 ) => {
-  console.log("this is paymentINETENT=-=-=->", paymentIntent);
   try {
     const paymentData = {
       stripePaymentIntentId: paymentIntent.id,
       amount: paymentIntent.amount,
       currency: paymentIntent.currency,
       status: paymentIntent.status,
-      customerId: (paymentIntent.customer as string) || "",
-      userId: paymentIntent.metadata.userId || "",
+      customerId: (paymentIntent.metadata.customerId as string) || "",
+      userId: parseInt(paymentIntent.metadata.userId),
       paymentMethod: charge.payment_method_details?.type || "",
       receiptUrl: charge.receipt_url || "",
       description: paymentIntent.description || "",
     };
-    console.log("payment DATA-=-=-=>", paymentData);
+
     const result = await StripePayment.create(paymentData);
     return result;
   } catch (error) {
@@ -241,6 +247,30 @@ const savePayment = async (
     throw error;
   }
 };
+const getStripePaymentController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { userId } = req.user!;
+    console.log("this is the TYPE OF USERID=-=->", typeof userId);
+    if (!userId) {
+      throw new ApiError("User Id is not provided", 400);
+    }
+    const payments = await StripePayment.findAll({
+      where: { userId },
+      include: [
+        {
+          model: StripeUser,
+          as: "userDetails",
+          attributes: ["name", "email", "phone"],
+        },
+      ],
+    });
+    res.status(200).json({
+      status: 200,
+      message: "successfully retirved payment history",
+      result: payments,
+    });
+  }
+);
 
 export {
   stripePaymentController,
@@ -252,4 +282,5 @@ export {
   updateStripeCustomer,
   DeleteCustomerController,
   handleStripeWebhook,
+  getStripePaymentController,
 };

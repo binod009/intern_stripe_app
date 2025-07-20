@@ -9,11 +9,12 @@ import { handleStripeWebhook } from "./controllers/stripe.controller";
 const app = express();
 
 app.use(
-  "/webhook",
+  "/stripe/webhook",
   bodyParser.raw({ type: "application/json" }),
   handleStripeWebhook
 );
 app.use(express.json());
+
 app.use("/me", (req: Request, res: Response, next: NextFunction) => {
   res.status(200).json({
     msg: "success",
