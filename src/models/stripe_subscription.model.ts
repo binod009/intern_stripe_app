@@ -11,10 +11,13 @@ const stripeSubscriptionModel = (sequelize: Sequelize) => {
   > {
     public id!: number;
     public userId!: number;
-    public stripeSubscriptionId!: number;
+    public stripeSubscriptionId!: string;
     public status!: string;
+    public currentPeriodStart!: Date;
+    public cancelAtPeriodEnd!: boolean;
     public currentPeriodEnd!: Date;
-    public planId?: number;
+    public planId?: string;
+    public is_archived?:boolean;
     public createdAt?: Date;
     public updatedAt?: Date;
   }
@@ -30,25 +33,39 @@ const stripeSubscriptionModel = (sequelize: Sequelize) => {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: {
-          model: "stripeuser",
+          model: "stripeusers",
           key: "id",
         },
       },
       stripeSubscriptionId: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      currentPeriodStart: {
+        type: DataTypes.DATE,
         allowNull: false,
       },
       currentPeriodEnd: {
         type: DataTypes.DATE,
         allowNull: false,
       },
+      cancelAtPeriodEnd: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+      },
       status: {
         type: DataTypes.STRING,
         allowNull: false,
       },
       planId: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.STRING,
         allowNull: false,
+      },
+      is_archived: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue:false
       },
       createdAt: {
         type: DataTypes.DATE,

@@ -3,9 +3,10 @@ import jwt from "jsonwebtoken";
 import asyncHandler from "../utils/asyncHandler";
 import stripe from "../config/stripe";
 import ApiError from "../utils/ApiError";
-import { StripePayment, StripeUser } from "../models";
+import { StripePayment, StripeSubscription, StripeUser } from "../models";
 
 import Stripe from "stripe";
+import stripeService from "../services/stripe.service";
 
 const stripePaymentController = asyncHandler(
   async (req: Request, res: Response) => {
@@ -54,7 +55,10 @@ const createStripeProductController = asyncHandler(
 
 const createStripeSubscription = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
-    const { email, payment_method_id, price_id } = req.body;
+    const { email, payment_method_id, priceId } = req.body;
+
+    const { userId } = req.user!;
+
     let customers = await stripe.customers.list({ email });
     let customer;
     if (customers.data.length === 0) {
@@ -67,13 +71,30 @@ const createStripeSubscription = asyncHandler(
     customer = customers.data[0];
     const subscription = await stripe.subscriptions.create({
       customer: customer.id,
-      items: [{ price: price_id }],
+      items: [{ price: priceId }],
       expand: ["latest_invoice.payment_intent"],
       payment_behavior: "default_incomplete",
       collection_method: "charge_automatically",
     });
+    const result = await stripeService.saveSubscriptionToDatabase({
+      userId: userId,
+      stripeSubscriptionId: subscription.id, // string id from Stripe
+      status: subscription.status,
+      currentPeriodStart: new Date(
+        subscription.items.data[0].current_period_start * 1000
+      ), // convert UNIX timestamp to Date
+      currentPeriodEnd: new Date(
+        subscription.items.data[0].current_period_end * 1000
+      ), // convert UNIX timestamp to Date
+      cancelAtPeriodEnd: subscription.cancel_at_period_end,
+      planId: subscription.items.data[0].plan.id, // plan id string from Stripe
+    });
 
-    res.status(200).json(subscription);
+    res.status(200).json({
+      status: 200,
+      message: "subscription created successfully",
+      result: result,
+    });
   }
 );
 
@@ -113,6 +134,14 @@ const createStripeCustomer = asyncHandler(
       stripeCustomerId: customer.id, // optional, useful to include
     };
 
+    const refreshToken = jwt.sign(
+      tokenPayload,
+      process.env.JWT_REFRESH_SECRET!,
+      {
+        expiresIn: "7d",
+      }
+    );
+
     const token = jwt.sign(tokenPayload, process.env.JWT_SECRET!, {
       expiresIn: "1h",
     });
@@ -121,6 +150,7 @@ const createStripeCustomer = asyncHandler(
       message: "Customer created",
       newUser,
       accessToken: token,
+      refreshToken: refreshToken,
     });
   }
 );
@@ -185,6 +215,7 @@ const DeleteCustomerController = asyncHandler(
 const handleStripeWebhook = asyncHandler(
   async (req: Request, res: Response) => {
     const sig = req.headers["stripe-signature"]!;
+
     let event: Stripe.Event;
     event = stripe.webhooks.constructEvent(
       req.body,
@@ -193,6 +224,35 @@ const handleStripeWebhook = asyncHandler(
     );
     let response;
     switch (event.type) {
+      case "customer.subscription.updated": {
+        const subscription = event.data.object as Stripe.Subscription;
+        const userId = parseInt(subscription.metadata.userId || "0");
+        if (!userId) {
+          console.warn("No userId found in subscription metadata");
+          break;
+        }
+        await stripeService.saveSubscriptionToDatabase({
+          userId: userId,
+          stripeSubscriptionId: subscription.id, // string id from Stripe
+          status: subscription.status,
+          currentPeriodStart: new Date(
+            subscription.items.data[0].current_period_start * 1000
+          ), // convert UNIX timestamp to Date
+          currentPeriodEnd: new Date(
+            subscription.items.data[0].current_period_end * 1000
+          ), // convert UNIX timestamp to Date
+          cancelAtPeriodEnd: subscription.cancel_at_period_end,
+          planId: subscription.items.data[0].plan.id, // plan id string from Stripe
+        });
+        break;
+      }
+        
+      case "customer.subscription.deleted": {
+        const subscription = event.data.object as Stripe.Subscription;
+        await stripeService.markSubscriptionDelete(subscription.id);
+        break;
+      }
+
       case "payment_intent.succeeded":
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
 

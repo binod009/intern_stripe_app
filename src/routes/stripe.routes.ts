@@ -21,7 +21,11 @@ stripe_route.patch("/customer/delete/:customerId", DeleteCustomerController);
 stripe_route.get("/user/details", getStripCustomerDetails);
 stripe_route.post("/create-payment", authMiddleware, stripePaymentController);
 stripe_route.post("/create/product", createStripeProductController);
-stripe_route.post("/create/subscription", createStripeSubscription);
+stripe_route.post(
+  "/create/subscription",
+  authMiddleware,
+  createStripeSubscription
+);
 stripe_route.post("/create/checkout", createCheckoutController);
 stripe_route.get(
   "/payment-details/",

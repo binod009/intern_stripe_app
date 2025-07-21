@@ -28,8 +28,8 @@ StripeUser.hasMany(StripeSubscription, {
 
 StripeSubscription.belongsTo(StripeUser, {
   foreignKey: "id",
-  as:""
+  as:"subscriber_details"
   
 })
 
-export { sequelize, StripeUser, StripePayment };
+export { sequelize, StripeUser, StripePayment ,StripeSubscription};
