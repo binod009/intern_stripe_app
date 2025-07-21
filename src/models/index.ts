@@ -1,6 +1,7 @@
+
 import sequelize from "../config/database";
-import stripe from "../config/stripe";
 import stripeUserModel from "./stripe_customer.model";
+import StripeInvoiceModel from "./stripe_invoice.model";
 import stripePaymentModel from "./stripe_payment.model";
 import stripeSubscriptionModel from "./stripe_subscription.model";
 
@@ -8,6 +9,7 @@ import stripeSubscriptionModel from "./stripe_subscription.model";
 const StripeUser = stripeUserModel(sequelize);
 const StripePayment = stripePaymentModel(sequelize);
 const StripeSubscription = stripeSubscriptionModel(sequelize);
+const StripeInvoice = StripeInvoiceModel(sequelize);
 // defined associations
 StripeUser.hasMany(StripePayment, {
   foreignKey: "id",
@@ -32,4 +34,4 @@ StripeSubscription.belongsTo(StripeUser, {
   
 })
 
-export { sequelize, StripeUser, StripePayment ,StripeSubscription};
+export { sequelize, StripeUser, StripePayment ,StripeSubscription,StripeInvoice};

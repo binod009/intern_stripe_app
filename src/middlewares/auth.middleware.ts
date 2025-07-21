@@ -19,6 +19,7 @@ export const authMiddleware = asyncHandler(
       userId: number;
       stripeCustomerId: string;
     };
+    console.log("decode this is decoded=-=-=-=>", decoded);
 
     if (!decoded || !decoded.userId) {
       throw new ApiError("Invalid token provided", 404);

@@ -1,9 +1,9 @@
-import { Express, NextFunction, Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import asyncHandler from "../utils/asyncHandler";
 import stripe from "../config/stripe";
 import ApiError from "../utils/ApiError";
-import { StripePayment, StripeSubscription, StripeUser } from "../models";
+import { StripePayment, StripeUser } from "../models";
 
 import Stripe from "stripe";
 import stripeService from "../services/stripe.service";
@@ -11,9 +11,11 @@ import stripeService from "../services/stripe.service";
 const stripePaymentController = asyncHandler(
   async (req: Request, res: Response) => {
     const { userId, stripeCustomerId } = req.user!;
-    console.log("userId", userId);
-    console.log("stripCustomerId", stripeCustomerId);
+    console.log("userID=-=-=>", userId);
+    console.log("stripeCustomer==>", stripeCustomerId);
+
     const { amount, currency } = req.body;
+
     const paymentIntent = await stripe.paymentIntents.create({
       amount,
       currency,
@@ -26,6 +28,7 @@ const stripePaymentController = asyncHandler(
         allow_redirects: "never",
       },
     });
+
     res.send({ clientSecret: paymentIntent.client_secret });
   }
 );
@@ -76,6 +79,7 @@ const createStripeSubscription = asyncHandler(
       payment_behavior: "default_incomplete",
       collection_method: "charge_automatically",
     });
+
     const result = await stripeService.saveSubscriptionToDatabase({
       userId: userId,
       stripeSubscriptionId: subscription.id, // string id from Stripe
@@ -118,7 +122,7 @@ const createCheckoutController = asyncHandler(
 const createStripeCustomer = asyncHandler(
   async (req: Request, res: Response) => {
     const { name, email, phone } = req.body;
-    console.log("AM HERE INSIDE THE CREATE STRIPE CUSTOMER");
+
     // 1. Create customer in Stripe
     const customer = await stripe.customers.create({ name, email, phone });
     // 2. Save to DB
@@ -215,7 +219,7 @@ const DeleteCustomerController = asyncHandler(
 const handleStripeWebhook = asyncHandler(
   async (req: Request, res: Response) => {
     const sig = req.headers["stripe-signature"]!;
-
+    const { userId } = req.user!;
     let event: Stripe.Event;
     event = stripe.webhooks.constructEvent(
       req.body,
@@ -224,9 +228,14 @@ const handleStripeWebhook = asyncHandler(
     );
     let response;
     switch (event.type) {
+      case "invoice.finalized": {
+        const invoice = event.data.object as Stripe.Invoice;
+        await stripeService.saveInvoiceToDatabase(invoice, userId);
+        break;
+      }
       case "customer.subscription.updated": {
         const subscription = event.data.object as Stripe.Subscription;
-        const userId = parseInt(subscription.metadata.userId || "0");
+        const userId = parseInt(subscription.metadata.userId);
         if (!userId) {
           console.warn("No userId found in subscription metadata");
           break;
@@ -307,6 +316,7 @@ const savePayment = async (
     throw error;
   }
 };
+
 const getStripePaymentController = asyncHandler(
   async (req: Request, res: Response) => {
     const { userId } = req.user!;
@@ -359,6 +369,19 @@ const updateSubscriptionController = asyncHandler(
   }
 );
 
+const getUserInvoicesController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { userId } = req.user! || req.query;
+    console.log("this is userID-=-=-=>", userId);
+    const result = await stripeService.getAllInvoice(userId);
+    res.status(200).json({
+      status: 200,
+      message: "successfully Retrived invoices",
+      result: result,
+    });
+  }
+);
+
 export {
   stripePaymentController,
   createStripeProductController,
@@ -371,4 +394,5 @@ export {
   handleStripeWebhook,
   getStripePaymentController,
   updateSubscriptionController,
+  getUserInvoicesController,
 };

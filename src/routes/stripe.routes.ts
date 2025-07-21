@@ -7,6 +7,7 @@ import {
   DeleteCustomerController,
   getStripCustomerDetails,
   getStripePaymentController,
+  getUserInvoicesController,
   handleStripeWebhook,
   stripePaymentController,
   updateStripeCustomer,
@@ -33,6 +34,11 @@ stripe_route.get(
   authMiddleware,
   getStripePaymentController
 );
-stripe_route.patch("/subscription/update-status",authMiddleware, updateSubscriptionController);
+stripe_route.patch(
+  "/subscription/update-status",
+  authMiddleware,
+  updateSubscriptionController
+);
+stripe_route.get("/invoice", getUserInvoicesController);
 
 export default stripe_route;
