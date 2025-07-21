@@ -10,6 +10,7 @@ import {
   handleStripeWebhook,
   stripePaymentController,
   updateStripeCustomer,
+  updateSubscriptionController,
 } from "../controllers/stripe.controller";
 import { authMiddleware } from "../middlewares/auth.middleware";
 
@@ -32,5 +33,6 @@ stripe_route.get(
   authMiddleware,
   getStripePaymentController
 );
+stripe_route.patch("/subscription/update-status",authMiddleware, updateSubscriptionController);
 
 export default stripe_route;

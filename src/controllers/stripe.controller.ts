@@ -246,7 +246,7 @@ const handleStripeWebhook = asyncHandler(
         });
         break;
       }
-        
+
       case "customer.subscription.deleted": {
         const subscription = event.data.object as Stripe.Subscription;
         await stripeService.markSubscriptionDelete(subscription.id);
@@ -332,6 +332,33 @@ const getStripePaymentController = asyncHandler(
   }
 );
 
+const updateSubscriptionController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { subscriptionId, action } = req.body;
+    if (!subscriptionId || !["cancel", "pause", "resume"].includes(action)) {
+      throw new ApiError("Invalid Request", 404);
+    }
+    let updatedSubscription;
+    if (action === "cancel") {
+      updatedSubscription = await stripe.subscriptions.update(subscriptionId, {
+        cancel_at_period_end: true,
+      });
+    } else if (action === "pause") {
+      updatedSubscription = await stripe.subscriptions.update(subscriptionId, {
+        pause_collection: { behavior: "mark_uncollectible" },
+      });
+    } else if (action === "resume") {
+      updatedSubscription = await stripe.subscriptions.update(subscriptionId, {
+        pause_collection: null,
+      });
+    }
+    res.status(200).json({
+      status: 200,
+      message: "updated successfully",
+    });
+  }
+);
+
 export {
   stripePaymentController,
   createStripeProductController,
@@ -343,4 +370,5 @@ export {
   DeleteCustomerController,
   handleStripeWebhook,
   getStripePaymentController,
+  updateSubscriptionController,
 };
